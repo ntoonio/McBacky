@@ -1,10 +1,5 @@
-import datetime
-import hashlib
 import glob
 import os
-import time
-import shutil
-import re
 
 from mcbacky.common import WorldFile
 from mcbacky.backup import Backup, BackupHistory
@@ -45,14 +40,14 @@ class World():
 
 		latestManifest = self.getManifestFiles()
 		if latestManifest != False:
-			for m in latestManifest:
-				manifest[m[0].shortPath] = m[0]
+			for f in latestManifest:
+				manifest[f.shortPath] = f
 
 		changedManifest = {}
 
 		for f in self.getFiles():
 			fileHash = f.fileHash()
-			if f.shortPath not in manifest or fileHash != manifest[f.shortPath].fileHash(): # If the file is not in the manifest (ie it's new) or the file of the has doesn't match that in the manifest (ie it has been changed)
+			if f.shortPath not in manifest or fileHash != manifest[f.shortPath].fileHash(): # If the file is not in the manifest (ie it's new) or the hash of the has doesn't match that in the manifest (ie it has been changed)
 				changedManifest[f.shortPath] = f
 
 		return changedManifest, manifest

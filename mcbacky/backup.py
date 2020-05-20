@@ -3,7 +3,7 @@ import shutil
 import glob
 import datetime
 
-from mcbacky.common import BackupFile, randomString
+from mcbacky.common import BackupFile, randomString, createNonCollidingName
 
 class Backup():
 	def __init__(self, backupPath, locked = None):
@@ -22,26 +22,20 @@ class Backup():
 
 	def getManifest(self):
 		with open(self.manifestPath) as of:
-			manifest = []
-			readingNewFiles = True
+			manifestFiles = []
 
 			for line in of:
-				if line == "-\n":
-					readingNewFiles = False
-					continue
-
 				# Line parts order: hash, file, backup
 				lineParts = line.strip().split(";")
 
-				manifest.append([
+				manifestFiles.append(
 					BackupFile(
 						self.path + "/" + lineParts[1],
 						lineParts[1],
 						lineParts[0],
-						lineParts[2]),
-					readingNewFiles])
+						lineParts[2]))
 
-		return manifest
+		return manifestFiles
 
 	def addFile(self, f):
 		if self.locked:
@@ -63,8 +57,6 @@ class Backup():
 				ff = changedManifest[f]
 				of.write(ff.fileHash() + ";" + ff.shortPath + ";" + self.name + "\n")
 
-			of.write("-\n")
-
 			for f in manifest:
 				if f in changedManifest: continue
 				ff = manifest[f]
@@ -82,7 +74,9 @@ class BackupHistory:
 		return [Backup(f) for f in files if os.path.isdir(f) and Backup.isBackup(f)]
 
 	def createNewBackup(self):
-		name = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M") + "-" + randomString(3)
+		originalName = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
+		name = createNonCollidingName(originalName, self.path + "/")
+
 		backupPath = self.path + "/" + name
 
 		os.makedirs(backupPath)
