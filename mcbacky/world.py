@@ -6,6 +6,7 @@ import time
 import shutil
 import re
 
+from mcbacky.common import WorldFile
 from mcbacky.backup import Backup, BackupHistory
 
 class World():
@@ -17,7 +18,7 @@ class World():
 		self.isBukkit = isBukkit
 
 	def getManifestFiles(self):
-		backupVersions = self.backups.listBackups()
+		backupVersions = self.backups.listBackups(reverse=True)
 
 		if len(backupVersions) == 0:
 			return False
@@ -25,7 +26,7 @@ class World():
 		return backupVersions[0].getManifest()
 
 	def getFiles(self):
-		files = [x.replace(self.path + "/", "") for x in glob.glob(self.path + "/**", recursive=True) if os.path.isfile(x)]
+		files = [WorldFile(x, x.replace(self.path + "/", "")) for x in glob.glob(self.path + "/**", recursive=True) if os.path.isfile(x)]
 
 		if self.isBukkit:
 			netherPath = os.path.dirname(self.path) + "/" + self.name + "_nether/DIM-1/"
@@ -34,17 +35,10 @@ class World():
 			netherFiles = glob.glob(netherPath + "/**", recursive=True)
 			endFiles = glob.glob(endPath + "/**", recursive=True)
 
-			files += [x.replace(netherPath, "DIM-1/") for x in netherFiles if os.path.isfile(x)]
-			files += [x.replace(endPath, "DIM1/") for x in endFiles if os.path.isfile(x)]
+			files += [WorldFile(x, x.replace(netherPath, "DIM-1/")) for x in netherFiles if os.path.isfile(x)]
+			files += [WorldFile(x, x.replace(endPath, "DIM1/")) for x in endFiles if os.path.isfile(x)]
 
-		return [f.replace(self.path + "/", "") for f in files]
-
-	def getAbsPath(self, f):
-		if self.isBukkit:
-			if f.startswith("DIM-1"): return os.path.dirname(self.path) + "/" + self.name + "_nether/" + f
-			elif f.startswith("DIM1"): return os.path.dirname(self.path) + "/" + self.name + "_the_end/" + f
-
-		return self.path + "/" + f
+		return files
 
 	def generateManifest(self):
 		manifest = {}
@@ -52,14 +46,14 @@ class World():
 		latestManifest = self.getManifestFiles()
 		if latestManifest != False:
 			for m in latestManifest:
-				manifest[m[0][1]] = [m[0][0], m[0][2]]
+				manifest[m[0].shortPath] = m[0]
 
 		changedManifest = {}
 
 		for f in self.getFiles():
-			fileHash = hashFile(self.getAbsPath(f))
-			if f not in manifest or fileHash != manifest[f][0]: # If the file is not in the manifest (ie it's new) or the file of the has doesn't match that in the manifest (ie it has been changed)
-				changedManifest[f] = fileHash
+			fileHash = f.fileHash()
+			if f.shortPath not in manifest or fileHash != manifest[f.shortPath].fileHash(): # If the file is not in the manifest (ie it's new) or the file of the has doesn't match that in the manifest (ie it has been changed)
+				changedManifest[f.shortPath] = f
 
 		return changedManifest, manifest
 
@@ -72,17 +66,8 @@ class World():
 		backup = self.backups.createNewBackup()
 
 		for cf in changedFiles:
-			backup.addFile(cf, self.getAbsPath(cf))
+			backup.addFile(changedFiles[cf])
 
 		backup.writeManifest(changedFiles, manifest)
 
 		return backup
-
-def hashFile(fileName, chunkSize=32768):
-	hasher = hashlib.md5()
-	with open(fileName, "rb") as f:
-		buf = f.read(chunkSize)
-		while len(buf) > 0:
-			hasher.update(buf)
-			buf = f.read(chunkSize)
-	return hasher.hexdigest()

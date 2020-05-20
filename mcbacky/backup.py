@@ -3,13 +3,15 @@ import shutil
 import glob
 import datetime
 
+from mcbacky.common import BackupFile, randomString
+
 class Backup():
 	def __init__(self, backupPath, locked = None):
 		"`backupPath` is the the path of the backup directory. `locked` is used to block changes to already saved backups. If `None` (default) it looks for manifest.txt in the directory and assumes it should be locked if it exists"
 		self.backupsDir = os.path.dirname(backupPath)
 		self.name = os.path.basename(backupPath)
 
-		self.path = self.backupsDir + "/" + self.name
+		self.path = backupPath.rstrip("/")
 		self.manifestPath = self.path + "/manifest.txt"
 
 		self.locked = locked if locked != None else os.path.exists(self.manifestPath)
@@ -28,37 +30,46 @@ class Backup():
 					readingNewFiles = False
 					continue
 
+				# Line parts order: hash, file, backup
 				lineParts = line.strip().split(";")
-				# hash, file, backup
-				manifest.append([lineParts, readingNewFiles])
+
+				manifest.append([
+					BackupFile(
+						self.path + "/" + lineParts[1],
+						lineParts[1],
+						lineParts[0],
+						lineParts[2]),
+					readingNewFiles])
 
 		return manifest
 
-	def addFile(self, f, src):
+	def addFile(self, f):
 		if self.locked:
 			raise Exception("Can't add file to locked backup")
 
-		dest = self.path + "/" + f
+		dest = self.path + "/" + f.shortPath
 		destDir = os.path.dirname(dest)
 
 		if not os.path.exists(destDir):
 			os.makedirs(destDir)
 
-		shutil.copy(src, dest)
+		shutil.copy(f.path, dest)
 
 	def writeManifest(self, changedManifest, manifest):
 		self.locked = True
 
 		with open(self.manifestPath, "w") as of:
 			for f in changedManifest:
-				of.write(changedManifest[f] + ";" + f + ";" + self.name + "\n")
+				ff = changedManifest[f]
+				of.write(ff.fileHash() + ";" + ff.shortPath + ";" + self.name + "\n")
 
 			of.write("-\n")
 
 			for f in manifest:
 				if f in changedManifest: continue
+				ff = manifest[f]
 
-				of.write(manifest[f][0] + ";" + f + ";" + manifest[f][1] + "\n")
+				of.write(ff.fileHash() + ";" + ff.shortPath + ";" + ff.backupName + "\n")
 
 class BackupHistory:
 	def __init__(self, backupsDir):
@@ -71,7 +82,7 @@ class BackupHistory:
 		return [Backup(f) for f in files if os.path.isdir(f) and Backup.isBackup(f)]
 
 	def createNewBackup(self):
-		name = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
+		name = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M") + "-" + randomString(3)
 		backupPath = self.path + "/" + name
 
 		os.makedirs(backupPath)

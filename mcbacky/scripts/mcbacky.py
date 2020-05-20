@@ -43,7 +43,7 @@ def action_save(args):
 	if args.verbose:
 		print("Files that has been changed:")
 
-		for f in [x[0][1] for x in backup.getManifest()]: print(" - " + f)
+		for f in [x[0].shortPath for x in backup.getManifest()]: print(" - " + f)
 
 	return "Created backup '{}'".format(backup.name)
 
