@@ -1,17 +1,18 @@
 import argparse
 import sys
 import os
+import logging
 
 from mcbacky.world import World
 from mcbacky.backup import BackupHistory, Backup
+from mcbacky.scripts.formatter import CustomLoggerFormatter
 
 def action_save(args):
 	worldPath = args.world_path.rstrip("/")
 	backupPath = os.path.abspath(args.backup_path).rstrip("/")
 
-	if args.dry and args.verbose:
-		print("world_path\t", worldPath)
-		print("backup_path\t", backupPath)
+	logging.info("world_path\t{}".format(worldPath))
+	logging.info("backup_path\t{}".format(backupPath))
 
 	if not os.path.exists(worldPath + "/" + "level.dat"):
 		return "The given path doesn't seems to be a Minecraft world (no level.dat)\n - Path: " + worldPath
@@ -21,7 +22,7 @@ def action_save(args):
 
 	isBukkit = os.path.isdir(worldPath + "_nether") and os.path.isdir(worldPath + "_the_end") and not os.path.exists(worldPath + "/DIM-1") and not os.path.exists(worldPath + "/DIM1")
 
-	if args.verbose: print("World is " + ("" if isBukkit else "not ") + "using the bukkit world structure")
+	logging.info("World is " + ("" if isBukkit else "not ") + "using the bukkit world structure")
 
 	world = World(worldPath, backupPath, isBukkit)
 
@@ -31,8 +32,7 @@ def action_save(args):
 		if len(changedFiles) == 0:
 			return "No files has been changed"
 
-		print("Files that has been changed:")
-		for f in [x for x in changedFiles]: print(" - " + f)
+		logging.info("Files that has been changed:\n{}".format("\n".join(["- " + x for x in changedFiles])))
 
 		return "Didn't create a backup because of the --dry flag"
 
@@ -41,10 +41,7 @@ def action_save(args):
 	if backup == False:
 		return "No changed files to create backup of"
 
-	if args.verbose:
-		print("Files that has been changed:")
-
-		for f in [x.shortPath for x in backup.getManifest()]: print(" - " + f)
+	logging.info("Files that has been changed:\n{}".format("\n".join(["- " + x.shortPath for x in backup.getManifest() if x.changedInBackup(backup.name)])))
 
 	return "Created backup '{}'".format(backup.name)
 
@@ -75,15 +72,21 @@ def action_restore(args):
 
 	files, path = backup.restore(args.restore_dir)
 
-	if args.verbose:
-		print("The following files are contained in the new restoration")
-		for f in files:
-			print("- Copied '{}' from {}".format(f.shortPath, f.backupName))
+	logging.info("The following files are contained in the new restoration\n{}".format("\n".join(["- Copied '{}' from '{}'".format(f.shortPath, f.backupName) for f in files])))
 
 	return "Created restoration at {}".format(path)
 
-
 def runAction(args):
+	# Setup the logger
+	fh = logging.FileHandler(os.path.expanduser("~/.mcbacky.log"))
+	ch = logging.StreamHandler()
+	fh.setFormatter(CustomLoggerFormatter(True))
+	ch.setFormatter(CustomLoggerFormatter())
+	fh.level = 10
+	ch.level = 10 if args.debug else 20 if args.verbose else 25
+	logging.basicConfig(handlers=[fh, ch], level=0)
+	logging.addLevelName(25, "INFO")
+
 	if args.action == "save":
 		return action_save(args)
 	elif args.action == "restore":
@@ -94,6 +97,7 @@ def runAction(args):
 def main():
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-v", "--verbose", action="store_true", help="print the files that are copied")
+	parser.add_argument("--debug", action="store_true", help="print debug logs")
 	parser.add_argument("-d", "--dry", action="store_true", help="don't do anything, just print the file names")
 
 	subparsers = parser.add_subparsers(title="action", dest="action")

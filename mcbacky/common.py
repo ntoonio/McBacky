@@ -43,6 +43,10 @@ class BackupFile(WorldFile):
 	def fileHash(self):
 		return self._fileHash
 
+	def changedInBackup(self, backupName):
+		return self.backupName == backupName
+
+
 def createNonCollidingPath(path):
 	"Adds a number to a file path if the desired path already exists"
 
