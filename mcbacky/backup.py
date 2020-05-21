@@ -2,6 +2,7 @@ import os
 import shutil
 import glob
 import datetime
+import logging
 
 from mcbacky.common import BackupFile, createNonCollidingPath
 
@@ -23,6 +24,8 @@ class Backup():
 	def getManifest(self):
 		"Returns list of `BackupFile`"
 
+		logging.debug("Getting manifest")
+
 		with open(self.manifestPath) as of:
 			manifestFiles = []
 
@@ -36,6 +39,8 @@ class Backup():
 						lineParts[1],
 						lineParts[0],
 						lineParts[2]))
+
+		logging.debug("Got manifest")
 
 		return manifestFiles
 

@@ -92,7 +92,7 @@ def runAction(args):
 	elif args.action == "restore":
 		return action_restore(args)
 	else:
-		return "No such action found"
+		return "No such action '{}' found".format(args.action)
 
 def main():
 	parser = argparse.ArgumentParser()
@@ -113,4 +113,5 @@ def main():
 
 	args = parser.parse_args()
 
-	print(runAction(args))
+	result = runAction(args)
+	logging.log(25, result)
