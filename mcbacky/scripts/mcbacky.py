@@ -3,6 +3,7 @@ import sys
 import os
 
 from mcbacky.world import World
+from mcbacky.backup import BackupHistory, Backup
 
 def action_save(args):
 	worldPath = args.world_path.rstrip("/")
@@ -48,7 +49,39 @@ def action_save(args):
 	return "Created backup '{}'".format(backup.name)
 
 def action_restore(args):
-	pass
+	if Backup.isBackup(args.backup_path):
+		backup = Backup(args.backup_path)
+	else:
+		backups = BackupHistory(args.backup_path)
+
+		backupVersions = backups.listBackups(False)
+
+		if len(backupVersions) == 0:
+			return "The path is neither a backup or a folder containing backup versions"
+		elif len(backupVersions) == 1:
+			backup = backupVersions[0]
+		else:
+			print("Choose one of the available backups in the directory")
+			for b in backupVersions:
+				print("-", b.name)
+
+			backupVersion = input("> ")
+			backupPath = backups.path + "/" + backupVersion
+
+			if Backup.isBackup(backupPath):
+				backup = Backup(backupPath)
+			else:
+				return "That backup doesn't exist"
+
+	files, path = backup.restore(args.restore_dir)
+
+	if args.verbose:
+		print("The following files are contained in the new restoration")
+		for f in files:
+			print("- Copied '{}' from {}".format(f.shortPath, f.backupName))
+
+	return "Created restoration at {}".format(path)
+
 
 def runAction(args):
 	if args.action == "save":
@@ -72,6 +105,7 @@ def main():
 
 	restoreParser = subparsers.add_parser("restore")
 	restoreParser.add_argument("backup_path", type=str)
+	restoreParser.add_argument("restore_dir", nargs="?", default=os.getcwd(), type=str)
 
 	args = parser.parse_args()
 

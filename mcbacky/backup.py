@@ -3,12 +3,12 @@ import shutil
 import glob
 import datetime
 
-from mcbacky.common import BackupFile, randomString, createNonCollidingName
+from mcbacky.common import BackupFile, createNonCollidingPath
 
 class Backup():
 	def __init__(self, backupPath, locked = None):
 		"`backupPath` is the the path of the backup directory. `locked` is used to block changes to already saved backups. If `None` (default) it looks for manifest.txt in the directory and assumes it should be locked if it exists"
-		self.backupsDir = os.path.dirname(backupPath)
+		self.backupsDir = os.path.dirname(backupPath.rstrip("/"))
 		self.name = os.path.basename(backupPath)
 
 		self.path = backupPath.rstrip("/")
@@ -21,6 +21,8 @@ class Backup():
 		return os.path.exists(path.rstrip("/") + "/manifest.txt")
 
 	def getManifest(self):
+		"Returns list of `BackupFile`"
+
 		with open(self.manifestPath) as of:
 			manifestFiles = []
 
@@ -30,7 +32,7 @@ class Backup():
 
 				manifestFiles.append(
 					BackupFile(
-						self.path + "/" + lineParts[1],
+						os.path.join(self.backupsDir, lineParts[2], lineParts[1]),
 						lineParts[1],
 						lineParts[0],
 						lineParts[2]))
@@ -63,6 +65,24 @@ class Backup():
 
 				of.write(ff.fileHash() + ";" + ff.shortPath + ";" + ff.backupName + "\n")
 
+	def restore(self, restoreDir):
+		name = "World_restoration_" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
+		restorePath = createNonCollidingPath(restoreDir.rstrip("/") + "/" + name)
+
+		manifest = self.getManifest()
+
+		for m in manifest:
+			src = m.path
+			dest = os.path.join(restorePath, m.shortPath)
+
+			destDir = os.path.dirname(dest)
+			if not os.path.exists(destDir):
+				os.makedirs(destDir)
+
+			shutil.copy(src, dest)
+
+		return manifest, restorePath
+
 class BackupHistory:
 	def __init__(self, backupsDir):
 		self.path = backupsDir.rstrip("/")
@@ -71,13 +91,11 @@ class BackupHistory:
 		files = glob.glob(self.path + "/*")
 		files.sort(reverse=reverse)
 
-		return [Backup(f) for f in files if os.path.isdir(f) and Backup.isBackup(f)]
+		return [Backup(f, self) for f in files if os.path.isdir(f) and Backup.isBackup(f)]
 
 	def createNewBackup(self):
-		originalName = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
-		name = createNonCollidingName(originalName, self.path + "/")
-
-		backupPath = self.path + "/" + name
+		name = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
+		backupPath = createNonCollidingPath(self.path + "/" + name)
 
 		os.makedirs(backupPath)
 

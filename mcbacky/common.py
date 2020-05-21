@@ -43,39 +43,30 @@ class BackupFile(WorldFile):
 	def fileHash(self):
 		return self._fileHash
 
-	def isFromBackup(self, name):
-		return self.backupName == name
-
-# https://stackoverflow.com/a/2030081
-def randomString(length=5):
-	letters = string.ascii_lowercase
-	return "".join(random.choice(letters) for i in range(length))
-
-def createNonCollidingName(name, d):
-	"Adds a number to a file name if the desired name already exists"
+def createNonCollidingPath(path):
+	"Adds a number to a file path if the desired path already exists"
 
 	# If the desired path already exists
-	if os.path.exists(d + name):
-		# Find all files with the name with an extension "-(number)" in case this isn't the first time the
-		# name collides
-		files = glob.glob(d + name + "-[0-9]")
+	if os.path.exists(path):
+		# Find all files with the path with an extension "-(number)" in case this isn't the first time the
+		# path collides
+		files = glob.glob(path + "-[0-9]")
 
-		# If there aren't any files that matches the name with the number extension that means that this is
-		# the first time this name collides
+		# If there aren't any files that matches the path with the number extension that means that this is
+		# the first time this path collides
 		if len(files) == 0:
 			n = 1
 		else:
-			# We want the highest number extension so sorting the names reversed will put that one in the first place
+			# We want the highest number extension so sorting the pathss reversed will put that one in the first place
 			files.sort(reverse=True)
 
-			fileName = os.path.basename(files[0])
-			# Match the name to groups
-			match = re.match("^\\d{2}(\\d{2}_){4}\\d{2}-(\\d+)$", fileName)
+			# Match the path to groups
+			match = re.match("^.*\\/\\d{2}(\\d{2}_){4}\\d{2}-(\\d+)$", files[0])
 
 			# Get the extension number and add 1
 			n = int(match.group(2)) + 1
 
-		# Add the number to the name that we now know is safe
-		name += "-" + str(n)
+		# Add the number to the path that we now know is safe
+		path += "-" + str(n)
 
-	return name
+	return path
