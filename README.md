@@ -24,21 +24,9 @@ But if the parts of the world that noone has touched since the last backup didn'
 
 ### Make backup
 
-	$ mcbacky [--dry] [--verbose] save [save_path] {backup_path}
+	$ mcbacky [--backup-dir] [--compare] save-path
 
-Without setting `save_path` it will have the value of the current work directory.
-
-**Example:**
-
-	$ mcbacky save .../server/world .../backups/my_server_world
+`backup-dir` is the directory in which each backup version will be stored, this will compare the `save-path` to the latest backup version. You can also select which version to compare to by setting `compare` to the name of a version. If you supply a full path to `compare` you can omit `backup-dir`.
 
 ### Restore
-
-	$ mcbacky [--dry] [--verbose] restore [backup_path] [version]
-
-- Default value for `backup_path` is the current working directory.
-- Default value for `version` is `"latest"`
-
-**Example:**
-
-	$ mcbacky restore .../backups/my_server_world 2020_01_22_19_03
+*Restoring has not been implemented but is easy to do*
