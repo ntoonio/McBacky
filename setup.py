@@ -4,7 +4,7 @@ import re
 
 setuptools.setup(
 	name="mcbacky",
-	version="0.0.1",
+	version="0.0.2",
 	author="Anton Lindroth",
 	author_email="ntoonio@gmail.com",
 	license="MIT",
@@ -13,11 +13,11 @@ setuptools.setup(
 	packages=setuptools.find_packages(),
 	classifiers=[
 		"Programming Language :: Python :: 3",
-		"License :: OSI Approved :: MIT License"
+		"OSI Approved :: GNU General Public License v3 (GPLv3)"
 	],
     entry_points={
 		"console_scripts": [
-			"mcbacky = mcbacky.scripts.mcbacky:main"
+			"mcbacky = mcbacky.backup:main"
 		]
 	}
 )

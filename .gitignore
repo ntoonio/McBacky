@@ -1,8 +1,10 @@
 .DS_Store
 
-venv/
 .vscode/
-*.egg-info/
+venv/
 
 build/
 dist/
+*.egg-info/
+
+_*
